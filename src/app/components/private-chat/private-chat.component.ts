@@ -1,31 +1,30 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ElementRef, ViewChild } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ChatService } from '../../services/chat.service';
 import { AuthService } from '../../services/auth.service';
-import { Message } from '../../models/message.model';
 import { PrivateMessage } from '../../models/PrivateMessage.model';
 import { User } from '../../models/user.model';
 import { Subscription } from 'rxjs';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Message } from '../../models/message.model';
 
 @Component({
   selector: 'app-private-chat',
   templateUrl: './private-chat.component.html',
   styleUrls: ['./private-chat.component.css'],
-  imports: [
-    CommonModule,
-    FormsModule
-  ]
+  standalone: true,
+  imports: [CommonModule, FormsModule]
 })
 export class PrivateChatComponent implements OnInit, OnDestroy {
-  messages: (Message | PrivateMessage)[] = [];
+  messages: PrivateMessage[] = [];
   newMessage: string = '';
   currentUser: User | null = null;
   receiverId: string = '';
   receiverUser: User | null = null;
-  private messageSubscription!: Subscription;
   private realTimeMessageSubscription!: Subscription;
+
+  @ViewChild('messageContainer') messageContainer!: ElementRef;
 
   constructor(
     private chatService: ChatService,
@@ -42,33 +41,30 @@ export class PrivateChatComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Fetch the receiver ID from the URL parameters
+    // Récupérer l'ID du destinataire depuis l'URL
     this.route.paramMap.subscribe(params => {
       this.receiverId = params.get('id') ?? '';
       if (!this.receiverId) {
         console.error('Receiver ID is missing');
-        this.router.navigate(['/chat']);
+        this.router.navigate(['/chat-room']);
       } else {
         this.loadReceiverDetails();
         this.loadPrivateMessages();
       }
     });
 
-    // Subscribe to real-time message updates
-    this.realTimeMessageSubscription = this.chatService.getMessagesObservable().subscribe((message: Message | PrivateMessage) => {
-      // Display messages that belong to the private conversation
-      if (this.isPrivateMessage(message) && (message.sender.id === this.receiverId || message.receiver.id === this.receiverId)) {
-        this.messages.push(message);
+    // Écoute des messages en temps réel
+    this.realTimeMessageSubscription = this.chatService.getMessagesObservable().subscribe((message: PrivateMessage | Message) => {
+      if ('sender' in message && 'receiver' in message) {
+        // C'est un message privé
+        this.messages.push(message as PrivateMessage);
+        this.scrollToBottom();
       }
     });
+
   }
 
-  // Check if the message is a private message
-  isPrivateMessage(message: Message | PrivateMessage): message is PrivateMessage {
-    return (message as PrivateMessage).sender !== undefined;
-  }
-
-  // Load receiver details (user)
+  // Charger les détails de l'utilisateur destinataire
   loadReceiverDetails(): void {
     this.chatService.getUserById(this.receiverId).subscribe(
       (user: User) => {
@@ -80,12 +76,13 @@ export class PrivateChatComponent implements OnInit, OnDestroy {
     );
   }
 
-  // Load private messages between the current user and the receiver
+  // Charger l'historique des messages privés
   loadPrivateMessages(): void {
-    if (!this.currentUser?.id) return; // Use id instead of _id
+    if (!this.currentUser?.id) return;
     this.chatService.getPrivateMessages(this.currentUser.id, this.receiverId).subscribe(
       (messages: PrivateMessage[]) => {
-        this.messages = messages;
+        this.messages = messages.map(msg => ({ ...msg, createdAt: new Date(msg.createdAt) }));
+        this.scrollToBottom();
       },
       (error) => {
         console.error('Error fetching private messages', error);
@@ -93,24 +90,40 @@ export class PrivateChatComponent implements OnInit, OnDestroy {
     );
   }
 
-  // Send a message
+  // Envoyer un message privé
   sendMessage(): void {
-    if (!this.newMessage.trim() || !this.currentUser?.id) return; // Use id instead of _id
-    console.log('Sending message:', this.newMessage);
+    if (!this.newMessage.trim() || !this.currentUser?.id) return;
+
+    const newMsg: PrivateMessage = {
+      sender: this.currentUser,
+      receiver: this.receiverUser!,
+      content: this.newMessage,
+      createdAt: new Date()
+    };
+
+    this.messages.push(newMsg); // Ajouter immédiatement pour affichage instantané
+    this.scrollToBottom();
+
     this.chatService.sendMessage(this.currentUser.id, this.currentUser.username, this.newMessage, this.receiverId);
-    this.newMessage = ''; // Reset the message field
+    this.newMessage = ''; // Réinitialiser le champ de saisie
   }
 
-  // Back to the chat list
+  // Faire défiler vers le bas automatiquement
+  scrollToBottom(): void {
+    setTimeout(() => {
+      if (this.messageContainer) {
+        this.messageContainer.nativeElement.scrollTop = this.messageContainer.nativeElement.scrollHeight;
+      }
+    }, 100);
+  }
+
+  // Retour à la liste des chats
   backToChatRoom(): void {
-    this.router.navigate(['/chat']);
+    this.router.navigate(['/chat-room']);
   }
 
-  // Unsubscribe when the component is destroyed
+  // Désabonnement lors de la destruction du composant
   ngOnDestroy(): void {
-    if (this.messageSubscription) {
-      this.messageSubscription.unsubscribe();
-    }
     if (this.realTimeMessageSubscription) {
       this.realTimeMessageSubscription.unsubscribe();
     }
