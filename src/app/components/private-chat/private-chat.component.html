@@ -1,24 +1,22 @@
-<div class="private-chat-container">
-  <header class="private-chat-header">
+<div class="chat-container">
+  <header class="chat-header">
     <button class="back-button" (click)="backToChatRoom()">&larr; Back</button>
-    <h2 class="private-chat-title">Conversation with {{ receiverUser?.username }}</h2>
+    <h2 class="chat-title">Conversation with {{ receiverUser?.username }}</h2>
   </header>
 
-  <div class="private-chat-messages">
-    <div *ngFor="let message of messages"
-         class="private-message"
-         [ngClass]="{'sent': isPrivateMessage(message) ? message.sender.username === currentUser?.username : message.user.username === currentUser?.username}">
+  <div class="chat-messages" #messageContainer>
+    <div *ngFor="let message of messages" class="message" [ngClass]="{'sent': message.sender.id === currentUser?.id, 'received': message.sender.id !== currentUser?.id}">
       <div class="message-info">
-        <span class="message-user">{{ isPrivateMessage(message) ? message.sender.username : message.user.username }}:</span>
+        <span class="message-user">{{ message.sender.username }}:</span>
       </div>
       <div class="message-content">
-        <span class="message-text">{{ isPrivateMessage(message) ? message.content : message.text }}</span>
+        <span class="message-text">{{ message.content }}</span>
       </div>
       <hr class="message-separator"/>
     </div>
   </div>
 
-  <div class="private-chat-input">
+  <div class="chat-input">
     <input [(ngModel)]="newMessage" placeholder="Type a message..." class="input-field">
     <button (click)="sendMessage()" class="send-button">Send</button>
   </div>
