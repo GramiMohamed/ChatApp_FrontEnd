@@ -1,0 +1,201 @@
+/* Global container for the chat */
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 80vh;
+  padding: 20px;
+  background-color: #f7f7f7;
+  border-radius: 10px;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+  max-width: 600px;
+  margin: 0 auto;
+  overflow: hidden;
+}
+
+/* Chat header */
+.chat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #6200ea;
+  padding: 10px 20px;
+  border-radius: 10px 10px 0 0;
+  color: white;
+}
+
+/* Messages container */
+.chat-messages {
+  flex-grow: 1;
+  padding: 10px;
+  overflow-y: auto;
+  margin-bottom: 10px;
+  max-height: calc(100vh - 200px); /* Ensures messages scroll when content exceeds height */
+}
+
+/* Individual message styling */
+.message {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  margin-bottom: 10px;
+  max-width: 100%;
+}
+
+/* Apply alignment based on sender */
+.message.sent {
+  align-items: flex-end; /* Align sent messages to the right */
+}
+
+.message-info {
+  display: flex;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+.message-user {
+  font-weight: bold;
+  font-size: 1rem;
+  color: #6200ea;
+}
+
+/* Message content styling */
+.message-content {
+  background-color: #ffffff;
+  border-radius: 15px;
+  padding: 10px;
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+  max-width: 80%;
+  word-wrap: break-word; /* Ensures long words wrap correctly */
+}
+
+.message-text {
+  margin-top: 5px;
+  font-size: 1rem;
+  color: #333;
+}
+
+/* Separator line between messages */
+.message-separator {
+  border: none;
+  height: 1px;
+  background-color: #ddd;
+  margin-top: 10px;
+  width: 100%;
+}
+
+/* Chat input styling */
+.chat-input {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.input-field {
+  width: 85%;
+  padding: 10px;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 20px;
+  outline: none;
+}
+
+.input-field:focus {
+  border-color: #6200ea;
+}
+
+.send-button {
+  padding: 10px 15px;
+  font-size: 1rem;
+  background-color: #6200ea;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.send-button:hover {
+  background-color: #3700b3;
+}
+
+/* Conteneur pour la liste des utilisateurs et le bouton */
+.user-list-container {
+  position: fixed;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+}
+
+/* Liste des utilisateurs */
+.user-list {
+  position: absolute;
+  bottom: 60px; /* Place the list just above the button */
+  left: 0;
+  right: 0;
+  background-color: #fff;
+  padding: 10px;
+  border-radius: 10px;
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+  overflow-y: auto;
+  max-height: 200px;
+}
+
+.user-list h3 {
+  margin: 0 0 10px;
+  color: #6200ea;
+}
+
+.user-list ul {
+  list-style: none;
+  padding: 0;
+}
+
+.user-list li {
+  padding: 10px;
+  cursor: pointer;
+  font-size: 1rem;
+  border-bottom: 1px solid #ddd;
+}
+
+.user-list li:hover {
+  background-color: #e0e0e0;
+}
+
+/* Bouton pour basculer l'affichage de la liste des utilisateurs */
+.user-list-toggle-button {
+  padding: 8px 12px;
+  font-size: 1rem;
+  background-color: #3700b3;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.user-list-toggle-button:hover {
+  background-color: #6200ea;
+}
+
+/* Pour une meilleure réactivité mobile */
+@media (max-width: 768px) {
+  .chat-container {
+    max-width: 100%;
+    padding: 10px;
+  }
+
+  .chat-title {
+    font-size: 1.2rem;
+  }
+
+  .input-field {
+    width: 75%;
+  }
+
+  .send-button {
+    padding: 8px 12px;
+  }
+}

@@ -1,0 +1,142 @@
+/* Container global pour le chat privé */
+.private-chat-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 80vh;
+  padding: 20px;
+  background-color: #f7f7f7;
+  border-radius: 10px;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+  max-width: 600px;
+  margin: 0 auto;
+  overflow: hidden;
+}
+
+/* En-tête du chat privé */
+.private-chat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #6200ea;
+  padding: 10px 20px;
+  border-radius: 10px 10px 0 0;
+  color: white;
+}
+
+/* Zone des messages privés */
+.private-chat-messages {
+  flex-grow: 1;
+  padding: 10px;
+  overflow-y: auto;
+  margin-bottom: 10px;
+  max-height: calc(100vh - 200px);
+}
+
+/* Style individuel pour chaque message */
+.private-message {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  margin-bottom: 10px;
+  max-width: 100%;
+}
+
+/* Aligner les messages envoyés à droite */
+.private-message.sent {
+  align-items: flex-end;
+}
+
+/* Informations sur l'utilisateur du message */
+.message-info {
+  display: flex;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+.message-user {
+  font-weight: bold;
+  font-size: 1rem;
+  color: #6200ea;
+}
+
+/* Contenu du message */
+.message-content {
+  background-color: #ffffff;
+  border-radius: 15px;
+  padding: 10px;
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+  max-width: 80%;
+  word-wrap: break-word;
+}
+
+.message-text {
+  margin-top: 5px;
+  font-size: 1rem;
+  color: #333;
+}
+
+/* Séparateur entre les messages */
+.message-separator {
+  border: none;
+  height: 1px;
+  background-color: #ddd;
+  margin-top: 10px;
+  width: 100%;
+}
+
+/* Zone d'entrée pour envoyer des messages */
+.private-chat-input {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.input-field {
+  width: 85%;
+  padding: 10px;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 20px;
+  outline: none;
+}
+
+.input-field:focus {
+  border-color: #6200ea;
+}
+
+.send-button {
+  padding: 10px 15px;
+  font-size: 1rem;
+  background-color: #6200ea;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.send-button:hover {
+  background-color: #3700b3;
+}
+
+/* Pour une meilleure réactivité mobile */
+@media (max-width: 768px) {
+  .private-chat-container {
+    max-width: 100%;
+    padding: 10px;
+  }
+
+  .private-chat-title {
+    font-size: 1.2rem;
+  }
+
+  .input-field {
+    width: 75%;
+  }
+
+  .send-button {
+    padding: 8px 12px;
+  }
+}
