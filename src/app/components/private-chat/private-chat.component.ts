@@ -1,36 +1,40 @@
 import { Component, OnInit, OnDestroy, ElementRef, ViewChild } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { ChatService } from '../../services/chat.service';
 import { AuthService } from '../../services/auth.service';
 import { PrivateMessage } from '../../models/PrivateMessage.model';
 import { User } from '../../models/user.model';
 import { Subscription } from 'rxjs';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Message } from '../../models/message.model';
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { PrivateChatService } from '../../services/private-chat.service';
 
 @Component({
   selector: 'app-private-chat',
   templateUrl: './private-chat.component.html',
   styleUrls: ['./private-chat.component.css'],
   standalone: true,
-  imports: [CommonModule, FormsModule]
+  imports: [CommonModule, FormsModule],
 })
 export class PrivateChatComponent implements OnInit, OnDestroy {
-  messages: PrivateMessage[] = [];
+  privateMessages: PrivateMessage[] = [];
   newMessage: string = '';
   currentUser: User | null = null;
   receiverId: string = '';
   receiverUser: User | null = null;
-  private realTimeMessageSubscription!: Subscription;
+  private privateMessageSubscription: Subscription | null = null;
+  private typingSubscription: Subscription | null = null;
+  isTyping: boolean = false;
+  typingUsername: string = '';
 
   @ViewChild('messageContainer') messageContainer!: ElementRef;
 
   constructor(
-    private chatService: ChatService,
+    private privateChatService: PrivateChatService,
     private authService: AuthService,
     private route: ActivatedRoute,
-    private router: Router
+    private router: Router,
+    private snackBar: MatSnackBar
   ) {}
 
   ngOnInit(): void {
@@ -41,7 +45,6 @@ export class PrivateChatComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Récupérer l'ID du destinataire depuis l'URL
     this.route.paramMap.subscribe(params => {
       this.receiverId = params.get('id') ?? '';
       if (!this.receiverId) {
@@ -53,35 +56,53 @@ export class PrivateChatComponent implements OnInit, OnDestroy {
       }
     });
 
-    // Écoute des messages en temps réel
-    this.realTimeMessageSubscription = this.chatService.getMessagesObservable().subscribe((message: PrivateMessage | Message) => {
-      if ('sender' in message && 'receiver' in message) {
-        // C'est un message privé
-        this.messages.push(message as PrivateMessage);
-        this.scrollToBottom();
-      }
+    // Écouter les messages privés reçus
+    this.privateMessageSubscription = this.privateChatService.getPrivateMessagesObservable().subscribe((msg: PrivateMessage) => {
+      this.privateMessages.push(msg);
+      this.scrollToBottom();
+      this.notifyUser(msg);
     });
 
+    // Écouter les événements de frappe (typing)
+    this.typingSubscription = this.privateChatService.getTypingObservable().subscribe((event) => {
+      this.isTyping = event.isTyping;
+      this.typingUsername = event.isTyping ? event.username : '';
+    });
+
+    // Demander la permission pour afficher les notifications si ce n'est pas encore fait
+    if (Notification.permission !== 'granted') {
+      Notification.requestPermission();
+    }
   }
 
-  // Charger les détails de l'utilisateur destinataire
+  // Charger les infos de l'utilisateur destinataire
   loadReceiverDetails(): void {
-    this.chatService.getUserById(this.receiverId).subscribe(
+    this.privateChatService.getUserById(this.receiverId).subscribe(
       (user: User) => {
-        this.receiverUser = user;
+        if (!user) {
+          console.error('User not found');
+          this.router.navigate(['/chat-room']);
+        } else {
+          this.receiverUser = user;
+        }
       },
       (error) => {
-        console.error('Error fetching receiver details', error);
+        console.error('Error loading user details', error);
+        this.router.navigate(['/chat-room']);
       }
     );
   }
 
-  // Charger l'historique des messages privés
+  // Charger les anciens messages privés
   loadPrivateMessages(): void {
     if (!this.currentUser?.id) return;
-    this.chatService.getPrivateMessages(this.currentUser.id, this.receiverId).subscribe(
-      (messages: PrivateMessage[]) => {
-        this.messages = messages.map(msg => ({ ...msg, createdAt: new Date(msg.createdAt) }));
+
+    this.privateChatService.getPrivateMessages(this.currentUser.id, this.receiverId).subscribe(
+      (response: { messages: PrivateMessage[] }) => {
+        this.privateMessages = response.messages.map(msg => ({
+          ...msg,
+          createdAt: new Date(msg.createdAt),
+        }));
         this.scrollToBottom();
       },
       (error) => {
@@ -92,40 +113,68 @@ export class PrivateChatComponent implements OnInit, OnDestroy {
 
   // Envoyer un message privé
   sendMessage(): void {
-    if (!this.newMessage.trim() || !this.currentUser?.id) return;
+    if (!this.newMessage.trim() || !this.currentUser?.id || !this.receiverUser?.id) return;
 
     const newMsg: PrivateMessage = {
-      sender: this.currentUser,
-      receiver: this.receiverUser!,
+      sender: { id: this.currentUser.id, username: this.currentUser.username },
+      receiver: { id: this.receiverUser.id, username: this.receiverUser.username },
       content: this.newMessage,
-      createdAt: new Date()
+      createdAt: new Date(),
     };
 
-    this.messages.push(newMsg); // Ajouter immédiatement pour affichage instantané
+    this.privateChatService.sendPrivateMessage(newMsg);
+    this.newMessage = '';
     this.scrollToBottom();
-
-    this.chatService.sendMessage(this.currentUser.id, this.currentUser.username, this.newMessage, this.receiverId);
-    this.newMessage = ''; // Réinitialiser le champ de saisie
+    this.privateChatService.sendTypingEvent(this.receiverId, false);
   }
 
-  // Faire défiler vers le bas automatiquement
+  // Afficher une notification (Snackbar + Notification système)
+  private notifyUser(msg: PrivateMessage): void {
+    if (msg.sender.id !== this.currentUser?.id) {
+      // Afficher un Snackbar
+      this.snackBar.open(`New message from ${msg.sender.username}: ${msg.content}`, 'Close', {
+        duration: 5000,
+        horizontalPosition: 'right',
+        verticalPosition: 'top',
+      });
+
+      // Afficher une notification système si l'utilisateur n'est pas sur la page
+      if (document.hidden && Notification.permission === 'granted') {
+        new Notification(`New message from ${msg.sender.username}`, {
+          body: msg.content,
+          icon: '/assets/chat-icon.png',
+        });
+      }
+    }
+  }
+
+  // Faire défiler la conversation vers le bas
   scrollToBottom(): void {
     setTimeout(() => {
       if (this.messageContainer) {
-        this.messageContainer.nativeElement.scrollTop = this.messageContainer.nativeElement.scrollHeight;
+        const container = this.messageContainer.nativeElement;
+        container.scrollTop = container.scrollHeight;
       }
-    }, 100);
+    });
   }
 
-  // Retour à la liste des chats
+  // Gestion de l'événement de frappe
+  onInputChange(): void {
+    if (this.newMessage.trim().length > 0) {
+      this.privateChatService.sendTypingEvent(this.receiverId, true);
+    } else {
+      this.privateChatService.sendTypingEvent(this.receiverId, false);
+    }
+  }
+
+  // Quitter le chat privé
   backToChatRoom(): void {
     this.router.navigate(['/chat-room']);
   }
 
-  // Désabonnement lors de la destruction du composant
+  // Désinscription des observables à la destruction du composant
   ngOnDestroy(): void {
-    if (this.realTimeMessageSubscription) {
-      this.realTimeMessageSubscription.unsubscribe();
-    }
+    this.privateMessageSubscription?.unsubscribe();
+    this.typingSubscription?.unsubscribe();
   }
 }

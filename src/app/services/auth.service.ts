@@ -9,6 +9,7 @@ import { environment } from '../../environments/environment';
   providedIn: 'root'
 })
 export class AuthService {
+
   private currentUser: User | null = null;
 
   constructor(private http: HttpClient) {}
@@ -18,6 +19,7 @@ export class AuthService {
       tap((response: any) => {
         this.currentUser = response.user;
         localStorage.setItem('currentUser', JSON.stringify(this.currentUser));
+
       }),
       catchError(this.handleError<any>('login'))
     );
@@ -38,8 +40,16 @@ export class AuthService {
   }
 
   logout(): void {
+    if (this.currentUser) {
+      this.http.post(`${environment.apiUrl}/auth/logout`, { userId: this.currentUser.id }).subscribe(() => {
+        console.log('User disconnected from server');
+      });
+    }
+
     this.currentUser = null;
     localStorage.removeItem('currentUser');
+    localStorage.removeItem('token');
+    window.location.reload();
   }
 
   private handleError<T>(operation = 'operation', result?: T) {

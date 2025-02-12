@@ -1,23 +1,30 @@
 <div class="chat-container">
-  <header class="chat-header">
-    <button class="back-button" (click)="backToChatRoom()">&larr; Back</button>
-    <h2 class="chat-title">Conversation with {{ receiverUser?.username }}</h2>
-  </header>
+  <!-- En-tête du chat -->
+  <div class="chat-header">
+    <button (click)="backToChatRoom()" class="back-button">⬅ Retour</button>
+    <h2 *ngIf="receiverUser">Discussion avec {{ receiverUser.username }}</h2>
+  </div>
 
+  <!-- Messages -->
   <div class="chat-messages" #messageContainer>
-    <div *ngFor="let message of messages" class="message" [ngClass]="{'sent': message.sender.id === currentUser?.id, 'received': message.sender.id !== currentUser?.id}">
+    <div *ngFor="let msg of privateMessages" [ngClass]="{'message': true, 'sent': msg.sender.id === currentUser?.id}">
       <div class="message-info">
-        <span class="message-user">{{ message.sender.username }}:</span>
+        <span class="message-user">{{ msg.sender.username }}</span>
+        <span class="message-time">{{ msg.createdAt | date:'shortTime' }}</span>
       </div>
       <div class="message-content">
-        <span class="message-text">{{ message.content }}</span>
+        <p class="message-text">{{ msg.content }}</p>
       </div>
-      <hr class="message-separator"/>
+    </div>
+    <div *ngIf="isTyping" class="typing-indicator">
+      {{ typingUsername }} est en train d'écrire...
     </div>
   </div>
 
+  <!-- Zone de saisie -->
   <div class="chat-input">
-    <input [(ngModel)]="newMessage" placeholder="Type a message..." class="input-field">
-    <button (click)="sendMessage()" class="send-button">Send</button>
+    <input type="text" [(ngModel)]="newMessage" (input)="onInputChange()" placeholder="Écrivez un message..."
+      class="input-field" />
+    <button (click)="sendMessage()" class="send-button">Envoyer</button>
   </div>
 </div>

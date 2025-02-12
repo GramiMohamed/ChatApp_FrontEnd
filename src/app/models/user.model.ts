@@ -1,6 +1,6 @@
 export interface User {
-  id?: string; // Use id consistently
-  _id?: string; // Include _id to map from the database
+  _id?: string; // Use _id as the MongoDB identifier
+  id?: string; // If you want to use `id` separately for other purposes (e.g., frontend)
   username: string;
-  password: string;
+  password?: string; // Sensitive field should not be exposed in some cases
 }
